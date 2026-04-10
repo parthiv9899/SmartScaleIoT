@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ScaleCook — Recipe</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --cream:#faf7f2;--warm:#f0ebe1;--charcoal:#1a1a18;--bark:#2d2926;
+  --sage:#4a5c4a;--sage-light:#6b7f6b;--rust:#c4622d;--rust-light:#e8845a;
+  --gold:#b8973a;--muted:#8a8278;--border:#e2ddd6;
+  --ok:#22c55e;--warn:#f59e0b;--danger:#ef4444;
+}
+html{scroll-behavior:smooth}
+body{background:var(--cream);color:var(--charcoal);font-family:'DM Sans',sans-serif;overflow-x:hidden;min-height:100vh}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:16px 48px;display:flex;align-items:center;justify-content:space-between;background:rgba(250,247,242,0.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+.nav-logo{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:var(--charcoal);text-decoration:none}
+.nav-logo span{color:var(--rust)}
+.nav-back{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;color:var(--muted);text-decoration:none;transition:color 0.2s}
+.nav-back:hover{color:var(--charcoal)}
+.nav-back svg{width:16px;height:16px;stroke:currentColor;fill:none}
+.live-badge{display:flex;align-items:center;gap:6px;background:var(--charcoal);color:#fff;font-size:11px;font-family:'DM Mono',monospace;padding:6px 14px;border-radius:999px}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--ok);animation:blink 1.5s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+
+/* HERO */
+.recipe-hero{padding-top:72px;position:relative;height:52vh;min-height:340px;overflow:hidden}
+.recipe-hero-img{width:100%;height:100%;object-fit:cover;display:block}
+.recipe-hero-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(26,26,24,0.25) 0%,rgba(26,26,24,0.75) 100%)}
+.recipe-hero-content{position:absolute;bottom:40px;left:48px;right:48px;color:#fff}
+.recipe-tag-chip{display:inline-flex;align-items:center;gap:6px;background:rgba(250,247,242,0.15);border:1px solid rgba(250,247,242,0.3);backdrop-filter:blur(8px);border-radius:4px;padding:4px 12px;font-size:11px;font-family:'DM Mono',monospace;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.85);margin-bottom:14px}
+.recipe-hero-title{font-family:'Playfair Display',serif;font-size:clamp(32px,5vw,60px);font-weight:900;line-height:1;letter-spacing:-0.02em;margin-bottom:16px}
+.recipe-hero-meta{display:flex;gap:24px;flex-wrap:wrap}
+.hero-meta-item{font-size:13px;color:rgba(255,255,255,0.7);display:flex;align-items:center;gap:6px}
+.hero-meta-item strong{color:#fff;font-weight:500}
+
+/* LAYOUT */
+.recipe-body{display:grid;grid-template-columns:1fr 380px;gap:32px;padding:40px 48px 80px;max-width:1200px;margin:0 auto}
+
+/* LEFT COLUMN */
+.left-col{}
+.section-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.18em;color:var(--rust);text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.section-label::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* INGREDIENT STEPS */
+.ing-list{display:flex;flex-direction:column;gap:12px;margin-bottom:40px}
+.ing-item{background:#fff;border:1.5px solid var(--border);border-radius:14px;padding:18px 20px;display:flex;align-items:center;gap:16px;cursor:pointer;transition:all 0.3s cubic-bezier(0.16,1,0.3,1);position:relative;overflow:hidden}
+.ing-item::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--border);border-radius:4px 0 0 4px;transition:background 0.3s}
+.ing-item.active{border-color:var(--rust);box-shadow:0 8px 24px rgba(196,98,45,0.12)}
+.ing-item.active::before{background:var(--rust)}
+.ing-item.done{border-color:var(--ok);background:rgba(34,197,94,0.03)}
+.ing-item.done::before{background:var(--ok)}
+.ing-num{width:36px;height:36px;border-radius:50%;border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:var(--muted);flex-shrink:0;transition:all 0.3s}
+.ing-item.active .ing-num{border-color:var(--rust);color:var(--rust);background:rgba(196,98,45,0.06)}
+.ing-item.done .ing-num{border-color:var(--ok);background:var(--ok);color:#fff;font-size:16px}
+.ing-info{flex:1}
+.ing-name{font-size:15px;font-weight:500;color:var(--charcoal);margin-bottom:2px;transition:color 0.2s}
+.ing-item.done .ing-name{color:var(--muted);text-decoration:line-through}
+.ing-desc{font-size:12px;color:var(--muted);font-weight:300}
+.ing-target{text-align:right;flex-shrink:0}
+.ing-target-g{font-family:'DM Mono',monospace;font-size:22px;font-weight:500;color:var(--charcoal);line-height:1}
+.ing-item.active .ing-target-g{color:var(--rust)}
+.ing-item.done .ing-target-g{color:var(--ok)}
+.ing-target-label{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px}
+/* progress bar inside card */
+.ing-progress{position:absolute;bottom:0;left:0;right:0;height:3px;background:var(--warm)}
+.ing-progress-fill{height:100%;background:var(--rust);border-radius:0 0 3px 3px;transition:width 0.4s ease;width:0%}
+.ing-item.done .ing-progress-fill{background:var(--ok);width:100%}
+
+/* STEPS */
+.steps-list{display:flex;flex-direction:column;gap:0}
+.step-item{display:flex;gap:20px;padding:24px 0;border-bottom:1px solid var(--border)}
+.step-item:last-child{border-bottom:none}
+.step-num-wrap{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:0}
+.step-num{width:36px;height:36px;border-radius:50%;background:var(--warm);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:var(--muted)}
+.step-line{flex:1;width:1px;background:var(--border);margin:6px 0}
+.step-content{}
+.step-content h4{font-family:'Playfair Display',serif;font-size:17px;font-weight:700;margin-bottom:8px;margin-top:6px}
+.step-content p{font-size:14px;color:var(--muted);line-height:1.75;font-weight:300}
+.step-tip{background:rgba(184,151,58,0.06);border:1px solid rgba(184,151,58,0.2);border-radius:8px;padding:10px 14px;margin-top:12px;font-size:12px;color:var(--gold);font-style:italic}
+
+/* RIGHT STICKY COLUMN */
+.right-col{position:sticky;top:88px;align-self:start;display:flex;flex-direction:column;gap:16px}
+
+/* SCALE CARD */
+.scale-card{background:var(--charcoal);border-radius:20px;padding:28px;position:relative;overflow:hidden}
+.scale-card::before{content:'';position:absolute;top:-60px;right:-60px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(196,98,45,0.2) 0%,transparent 70%);pointer-events:none}
+.scale-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.scale-title{font-size:11px;font-family:'DM Mono',monospace;letter-spacing:0.12em;color:rgba(250,247,242,0.45);text-transform:uppercase}
+.scale-conn{display:flex;align-items:center;gap:5px;font-size:10px;font-family:'DM Mono',monospace;color:rgba(250,247,242,0.45)}
+.scale-conn-dot{width:5px;height:5px;border-radius:50%;background:var(--ok);animation:blink 1.5s infinite}
+
+/* BIG WEIGHT */
+.scale-weight-wrap{text-align:center;margin-bottom:24px}
+.scale-current-label{font-size:10px;font-family:'DM Mono',monospace;color:rgba(250,247,242,0.35);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:6px}
+.scale-weight-num{font-family:'DM Mono',monospace;font-size:72px;font-weight:500;line-height:1;letter-spacing:-0.03em;color:var(--cream);transition:color 0.3s}
+.scale-weight-num.ok{color:var(--ok)}
+.scale-weight-num.warn{color:var(--warn)}
+.scale-weight-num.over{color:var(--danger)}
+.scale-weight-unit{font-size:20px;color:rgba(250,247,242,0.45);margin-left:4px;font-family:'DM Mono',monospace}
+
+/* TARGET INFO */
+.scale-target-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.scale-target-label{font-size:12px;color:rgba(250,247,242,0.45)}
+.scale-target-val{font-family:'DM Mono',monospace;font-size:14px;color:rgba(250,247,242,0.7)}
+.scale-diff{font-family:'DM Mono',monospace;font-size:13px;padding:4px 10px;border-radius:6px;background:rgba(250,247,242,0.08);color:rgba(250,247,242,0.6)}
+.scale-diff.ok{color:var(--ok);background:rgba(34,197,94,0.1)}
+.scale-diff.over{color:var(--danger);background:rgba(239,68,68,0.1)}
+
+/* GAUGE */
+.gauge-wrap{margin-bottom:20px}
+.gauge-track{height:8px;background:rgba(250,247,242,0.08);border-radius:999px;overflow:hidden;margin-bottom:6px}
+.gauge-fill{height:100%;border-radius:999px;background:var(--cream);transition:width 0.4s ease,background 0.3s;width:0%}
+.gauge-fill.ok-fill{background:var(--ok)}
+.gauge-fill.warn-fill{background:var(--warn)}
+.gauge-fill.over-fill{background:var(--danger)}
+.gauge-labels{display:flex;justify-content:space-between;font-size:10px;font-family:'DM Mono',monospace;color:rgba(250,247,242,0.25)}
+
+/* TICK animation */
+.tick-overlay{position:absolute;inset:0;background:rgba(34,197,94,0.12);border-radius:20px;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.4s;z-index:2}
+.tick-overlay.show{opacity:1}
+.tick-circle{width:72px;height:72px;border-radius:50%;background:var(--ok);display:flex;align-items:center;justify-content:center;animation:popIn 0.4s cubic-bezier(0.16,1,0.3,1)}
+.tick-circle svg{width:36px;height:36px;stroke:#fff;fill:none;stroke-width:3}
+@keyframes popIn{from{transform:scale(0.4);opacity:0}to{transform:scale(1);opacity:1}}
+
+/* CURRENT ING CARD */
+.ing-active-card{background:#fff;border:1.5px solid var(--border);border-radius:16px;padding:20px}
+.iac-label{font-size:10px;font-family:'DM Mono',monospace;letter-spacing:0.12em;color:var(--muted);text-transform:uppercase;margin-bottom:10px}
+.iac-name{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;margin-bottom:4px;color:var(--charcoal)}
+.iac-sub{font-size:12px;color:var(--muted);font-weight:300;margin-bottom:16px}
+.iac-amounts{display:flex;gap:0;background:var(--warm);border-radius:10px;overflow:hidden}
+.iac-amt{flex:1;padding:12px;text-align:center}
+.iac-amt:not(:last-child){border-right:1px solid var(--border)}
+.iac-amt-num{font-family:'DM Mono',monospace;font-size:18px;font-weight:500;color:var(--charcoal)}
+.iac-amt-label{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px}
+.iac-tip{font-size:12px;color:var(--sage);font-style:italic;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+
+/* COMPLETE card */
+.complete-card{background:var(--sage);border-radius:16px;padding:24px;text-align:center;display:none}
+.complete-card.show{display:block;animation:popIn 0.5s cubic-bezier(0.16,1,0.3,1)}
+.complete-icon{font-size:40px;margin-bottom:12px}
+.complete-title{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:#fff;margin-bottom:8px}
+.complete-sub{font-size:13px;color:rgba(255,255,255,0.7);font-weight:300}
+
+/* TARE BTN */
+.tare-row{display:flex;gap:10px;margin-top:4px}
+.btn-tare{flex:1;background:rgba(250,247,242,0.08);border:1px solid rgba(250,247,242,0.12);border-radius:8px;color:rgba(250,247,242,0.6);font-family:'DM Mono',monospace;font-size:11px;padding:10px;cursor:pointer;transition:all 0.2s;letter-spacing:0.06em}
+.btn-tare:hover{background:rgba(250,247,242,0.14);color:rgba(250,247,242,0.9)}
+.btn-next{flex:1;background:var(--rust);border:none;border-radius:8px;color:#fff;font-family:'DM Mono',monospace;font-size:11px;padding:10px;cursor:pointer;transition:all 0.2s;letter-spacing:0.06em}
+.btn-next:hover{background:var(--rust-light)}
+.btn-next:disabled{background:rgba(250,247,242,0.1);color:rgba(250,247,242,0.25);cursor:not-allowed}
+
+/* FIREBASE STATUS */
+.firebase-row{display:flex;align-items:center;gap:8px;background:rgba(250,247,242,0.04);border:1px solid rgba(250,247,242,0.08);border-radius:8px;padding:10px 14px;font-size:11px;font-family:'DM Mono',monospace;color:rgba(250,247,242,0.35)}
+.fb-dot{width:5px;height:5px;border-radius:50%;background:var(--warn)}
+.fb-dot.live{background:var(--ok)}
+
+@media(max-width:900px){
+  .recipe-body{grid-template-columns:1fr;padding:24px}
+  nav{padding:14px 24px}
+  .recipe-hero-content{left:24px;right:24px}
+  .right-col{position:static}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="index.html" class="nav-logo">Scale<span>Cook</span></a>
+  <a href="index.html" class="nav-back">
+    <svg viewBox="0 0 24 24" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    All Recipes
+  </a>
+  <div class="live-badge">
+    <span class="live-dot" id="live-dot"></span>
+    <span id="live-label">Firebase</span>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="recipe-hero" id="recipe-hero">
+  <img class="recipe-hero-img" id="hero-img" src="" alt="Recipe"/>
+  <div class="recipe-hero-overlay"></div>
+  <div class="recipe-hero-content">
+    <div class="recipe-tag-chip" id="recipe-tag">—</div>
+    <h1 class="recipe-hero-title" id="recipe-title">Loading…</h1>
+    <div class="recipe-hero-meta">
+      <span class="hero-meta-item"><strong id="meta-time">—</strong> &nbsp;Cook Time</span>
+      <span class="hero-meta-item"><strong id="meta-diff">—</strong> &nbsp;Difficulty</span>
+      <span class="hero-meta-item"><strong id="meta-serves">—</strong> &nbsp;Serves</span>
+      <span class="hero-meta-item"><strong id="meta-ing-count">—</strong> &nbsp;Ingredients</span>
+    </div>
+  </div>
+</div>
+
+<!-- BODY -->
+<div class="recipe-body">
+  <!-- LEFT -->
+  <div class="left-col">
+    <!-- Ingredients -->
+    <div class="section-label">Ingredients — Place on Scale</div>
+    <div class="ing-list" id="ing-list"></div>
+
+    <!-- Steps -->
+    <div class="section-label" style="margin-top:8px">Method</div>
+    <div class="steps-list" id="steps-list"></div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right-col">
+    <!-- Scale -->
+    <div class="scale-card">
+      <div class="tick-overlay" id="tick-overlay">
+        <div class="tick-circle">
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+      </div>
+      <div class="scale-header">
+        <span class="scale-title">Live Scale</span>
+        <span class="scale-conn"><span class="scale-conn-dot" id="conn-dot"></span><span id="conn-label">Connecting…</span></span>
+      </div>
+      <div class="scale-weight-wrap">
+        <div class="scale-current-label">Current Reading</div>
+        <div class="scale-weight-num" id="scale-num">—<span class="scale-weight-unit">g</span></div>
+      </div>
+      <div class="scale-target-row">
+        <span class="scale-target-label">Target</span>
+        <span class="scale-target-val" id="target-val">—</span>
+        <span class="scale-diff" id="diff-val">—</span>
+      </div>
+      <div class="gauge-wrap">
+        <div class="gauge-track"><div class="gauge-fill" id="gauge-fill"></div></div>
+        <div class="gauge-labels"><span>0g</span><span id="gauge-max-label">—</span></div>
+      </div>
+      <div class="tare-row">
+        <button class="btn-tare">↺ Tare</button>
+        <button class="btn-next" id="next-btn" onclick="advanceIngredient()">Next →</button>
+      </div>
+      <div class="firebase-row" style="margin-top:12px">
+        <span class="fb-dot" id="fb-dot"></span>
+        <span id="fb-status">load-cell-ea878.firebaseio.com</span>
+      </div>
+    </div>
+
+    <!-- Active ingredient info -->
+    <div class="ing-active-card" id="active-ing-card">
+      <div class="iac-label">Now Measuring</div>
+      <div class="iac-name" id="iac-name">—</div>
+      <div class="iac-sub" id="iac-sub">—</div>
+      <div class="iac-amounts">
+        <div class="iac-amt">
+          <div class="iac-amt-num" id="iac-needed">—</div>
+          <div class="iac-amt-label">Needed (g)</div>
+        </div>
+        <div class="iac-amt">
+          <div class="iac-amt-num" id="iac-current">—</div>
+          <div class="iac-amt-label">On scale (g)</div>
+        </div>
+        <div class="iac-amt">
+          <div class="iac-amt-num" id="iac-remain">—</div>
+          <div class="iac-amt-label">Remaining</div>
+        </div>
+      </div>
+      <div class="iac-tip" id="iac-tip">Place ingredient on scale and add slowly.</div>
+    </div>
+
+    <!-- Complete card -->
+    <div class="complete-card" id="complete-card">
+      <div class="complete-icon">🎉</div>
+      <div class="complete-title">All Ingredients Ready!</div>
+      <div class="complete-sub">Follow the method steps below to complete your recipe. Enjoy your meal!</div>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+<script>
+// ── RECIPES DATA ──
+const recipes = [
+  {
+    id:0, title:"Fluffy Buttermilk Pancakes", tag:"Breakfast", time:"25 min", diff:"Easy", serves:"2", img:"https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=1080&q=80",
+    ingredients:[
+      {name:"All-Purpose Flour",   grams:200, desc:"Sifted · room temperature", tip:"Sift to avoid lumps in batter"},
+      {name:"Buttermilk",          grams:240, desc:"Full-fat · cold",            tip:"Cold buttermilk gives better rise"},
+      {name:"Butter (melted)",     grams:50,  desc:"Unsalted · melted & cooled", tip:"Don't add hot butter — scrambles eggs"},
+      {name:"Sugar",               grams:30,  desc:"Caster or fine sugar",       tip:"Adjust to taste"},
+      {name:"Eggs",                grams:110, desc:"2 large eggs · beaten",      tip:"Crack into bowl first to check freshness"},
+    ],
+    steps:[
+      {title:"Mix dry ingredients", text:"In a large bowl, whisk together the flour, sugar, a pinch of salt, and 1½ tsp baking powder. Make a well in the center."},
+      {title:"Combine wet ingredients", text:"In a separate jug, whisk together the buttermilk, beaten eggs, and melted butter until smooth.", tip:"Don't overmix once combined — lumps are fine!"},
+      {title:"Make the batter", text:"Pour wet mixture into the dry well. Fold gently 8–10 times. Rest batter for 5 minutes — bubbles should form on the surface."},
+      {title:"Cook pancakes", text:"Heat a non-stick pan over medium heat. Lightly butter. Pour ¼ cup batter per pancake. Cook until bubbles form on top (2–3 min), flip once, cook 1 min more.", tip:"Never press down on pancakes — this kills the fluff!"},
+      {title:"Serve immediately", text:"Stack and serve with maple syrup, fresh berries, or a dusting of powdered sugar. Best eaten within 5 minutes of cooking."},
+    ]
+  },
+  {
+    id:1, title:"Dark Chocolate Lava Cake", tag:"Dessert", time:"40 min", diff:"Medium", serves:"4", img:"https://images.unsplash.com/photo-1595854341625-f33ee10dbf94?w=1080&q=80",
+    ingredients:[
+      {name:"Dark Chocolate (70%)", grams:200, desc:"Good quality · chopped small",  tip:"Higher cocoa % = richer center"},
+      {name:"Unsalted Butter",      grams:120, desc:"Cold · cut into cubes",         tip:"Cold butter melts more evenly with chocolate"},
+      {name:"Eggs + Yolks",         grams:160, desc:"3 whole eggs + 2 yolks",        tip:"Eggs at room temperature blend better"},
+      {name:"Icing Sugar",          grams:90,  desc:"Sifted fine",                   tip:"Icing sugar dissolves without graining"},
+      {name:"All-Purpose Flour",    grams:40,  desc:"Plain flour · sifted",          tip:"Too much flour = no molten center"},
+      {name:"Cocoa Powder",         grams:20,  desc:"Dutch-process · unsweetened",   tip:"For dusting ramekins"},
+    ],
+    steps:[
+      {title:"Preheat & prep ramekins", text:"Preheat oven to 200°C (fan 180°C). Butter 4 ramekins generously, dust with cocoa powder, tap out excess."},
+      {title:"Melt chocolate & butter", text:"Melt chocolate and butter together in a heatproof bowl over simmering water. Stir until smooth. Cool for 5 minutes.", tip:"Don't let water touch the chocolate — it will seize!"},
+      {title:"Whisk eggs & sugar", text:"Whisk eggs, yolks, and icing sugar until pale and slightly thickened — about 2 minutes with an electric whisk."},
+      {title:"Combine", text:"Fold chocolate mixture into egg mixture. Sift flour over and fold until just combined — do not overmix."},
+      {title:"Bake", text:"Fill ramekins ¾ full. Bake for exactly 12 minutes — edges firm, center slightly wobbly. Invert immediately onto plate.", tip:"Every oven differs — test one cake first at 11 minutes"},
+    ]
+  },
+  {
+    id:2, title:"Hyderabadi Chicken Biryani", tag:"Main Course", time:"90 min", diff:"Hard", serves:"4", img:"https://images.unsplash.com/photo-1512058564366-18510be2db19?w=1080&q=80",
+    ingredients:[
+      {name:"Basmati Rice",         grams:320, desc:"Aged · soaked 30 min",          tip:"Soak rice for fluffy, separate grains"},
+      {name:"Chicken (pieces)",     grams:700, desc:"Bone-in curry cut · cleaned",   tip:"Score chicken for better marinade penetration"},
+      {name:"Yogurt (marinade)",    grams:200, desc:"Full-fat · thick",              tip:"Thick yogurt coats chicken better"},
+      {name:"Onions (fried)",       grams:150, desc:"Thinly sliced · deep fried",   tip:"Fry until deep golden — not burnt"},
+      {name:"Ghee",                 grams:80,  desc:"Pure clarified butter",         tip:"More ghee = more fragrant biryani"},
+      {name:"Whole spices mix",     grams:25,  desc:"Bay leaf, cardamom, clove, star anise", tip:"Whole spices release slowly in rice"},
+      {name:"Saffron milk",         grams:60,  desc:"½ tsp saffron in warm milk",   tip:"Use good quality saffron for color & aroma"},
+      {name:"Fresh mint & coriander", grams:40, desc:"Loosely packed · washed",     tip:"Add generously between layers"},
+    ],
+    steps:[
+      {title:"Marinate the chicken", text:"Combine chicken with yogurt, fried onions, ginger-garlic paste, and spice powders. Marinate minimum 2 hours (overnight preferred)."},
+      {title:"Parboil the rice", text:"Boil water with salt and whole spices. Add soaked rice. Cook until 70% done (grains should still have a slight bite). Drain immediately.", tip:"Undercooked rice finishes in the dum steam"},
+      {title:"Cook the chicken", text:"In a heavy-bottomed pot, cook marinated chicken on high heat for 10 minutes until seared. Reduce heat, cook 15 more minutes."},
+      {title:"Layer the biryani", text:"Spread chicken at the bottom. Layer rice over chicken. Drizzle saffron milk, ghee, and scatter mint over each layer. Repeat."},
+      {title:"Dum cooking", text:"Seal pot tightly with foil then lid. Cook on high 5 minutes, then very low heat for 25 minutes. Rest 10 minutes before opening.", tip:"A heavy lid is essential — use a dough seal (atta) for authentic dum"},
+    ]
+  },
+  {
+    id:3, title:"Moist Banana Bread", tag:"Baking", time:"65 min", diff:"Easy", serves:"8", img:"https://images.unsplash.com/photo-1549931319-a545dcf3bc73?w=1080&q=80",
+    ingredients:[
+      {name:"Ripe Bananas (mashed)", grams:280, desc:"Very ripe · deeply spotted",   tip:"Blacker the banana, sweeter the bread"},
+      {name:"All-Purpose Flour",     grams:210, desc:"Plain flour · spooned & leveled", tip:"Don't pack flour — use spoon & level method"},
+      {name:"Brown Sugar",           grams:140, desc:"Packed light brown sugar",     tip:"Brown sugar adds moisture & caramel note"},
+      {name:"Unsalted Butter",       grams:100, desc:"Melted · slightly cooled",     tip:"Melted butter gives denser, moister crumb"},
+      {name:"Eggs",                  grams:110, desc:"2 large eggs",                 tip:"Room temperature eggs blend more evenly"},
+      {name:"Walnuts (optional)",    grams:80,  desc:"Roughly chopped",              tip:"Toast walnuts first for deeper flavor"},
+      {name:"Milk",                  grams:60,  desc:"Whole milk · room temp",       tip:"Adds tenderness to crumb"},
+    ],
+    steps:[
+      {title:"Prep & preheat", text:"Preheat oven to 175°C. Grease a 9×5 inch loaf pan and line with parchment. Mash bananas until smooth with a fork."},
+      {title:"Mix wet ingredients", text:"Whisk melted butter and brown sugar together. Add eggs one at a time, then vanilla extract. Stir in mashed bananas and milk."},
+      {title:"Fold in dry ingredients", text:"Sift flour, 1 tsp baking soda, ½ tsp cinnamon, and ½ tsp salt over wet mix. Fold until just combined. Fold in walnuts.", tip:"Overmixing = tough, rubbery bread. Stop when flour disappears"},
+      {title:"Bake", text:"Pour batter into prepared pan. Bake 55–65 minutes until a toothpick inserted in center comes out clean with a few moist crumbs.", tip:"Tent with foil at 40 minutes if top browns too fast"},
+      {title:"Cool & slice", text:"Cool in pan 15 minutes, then turn onto a wire rack. Wait at least 30 minutes before slicing — bread continues cooking from residual heat."},
+    ]
+  },
+  {
+    id:4, title:"Greek Quinoa Power Bowl", tag:"Healthy", time:"20 min", diff:"Easy", serves:"2", img:"https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=1080&q=80",
+    ingredients:[
+      {name:"Quinoa (dry)",         grams:160, desc:"Rinsed thoroughly",            tip:"Rinsing removes bitter saponins coating"},
+      {name:"Cherry Tomatoes",      grams:180, desc:"Halved",                       tip:"Room temp tomatoes are more flavorful"},
+      {name:"Cucumber",             grams:150, desc:"Diced · seeds removed",        tip:"Remove seeds to prevent watery bowl"},
+      {name:"Feta Cheese",          grams:100, desc:"Block feta · crumbled",        tip:"Block feta has more flavor than pre-crumbled"},
+      {name:"Kalamata Olives",      grams:80,  desc:"Pitted · halved",              tip:"Drain and rinse for less sodium"},
+      {name:"Olive Oil (dressing)", grams:45,  desc:"Extra virgin · good quality",  tip:"Quality EVOO makes all the difference here"},
+    ],
+    steps:[
+      {title:"Cook quinoa", text:"Combine rinsed quinoa with 2× volume water. Bring to boil, reduce to simmer, cover and cook 15 minutes. Fluff with fork, rest 5 minutes."},
+      {title:"Make dressing", text:"Whisk together olive oil, juice of 1 lemon, 1 tsp dried oregano, salt and pepper. Taste and adjust."},
+      {title:"Prep vegetables", text:"Halve cherry tomatoes, dice cucumber, pit and halve olives. If using red onion, slice thinly and soak in cold water 5 minutes to mellow."},
+      {title:"Assemble bowl", text:"Divide warm quinoa between bowls. Top with vegetables, crumbled feta, and olives. Drizzle generously with dressing.", tip:"Dress while quinoa is warm — it absorbs flavor better"},
+      {title:"Serve", text:"Garnish with fresh mint or parsley. Best eaten immediately while quinoa is warm, but keeps refrigerated 2 days without dressing."},
+    ]
+  }
+];
+
+// ── INIT ──
+const params = new URLSearchParams(window.location.search);
+const rIdx = parseInt(params.get('r')) || 0;
+const R = recipes[Math.min(rIdx, recipes.length - 1)];
+let activeIng = 0;
+let currentWeight = 0;
+let allDone = false;
+
+// Populate page
+document.getElementById('hero-img').src = R.img;
+document.getElementById('hero-img').alt = R.title;
+document.getElementById('recipe-tag').textContent = R.tag;
+document.getElementById('recipe-title').textContent = R.title;
+document.getElementById('meta-time').textContent = R.time;
+document.getElementById('meta-diff').textContent = R.diff;
+document.getElementById('meta-serves').textContent = R.serves + ' people';
+document.getElementById('meta-ing-count').textContent = R.ingredients.length + ' items';
+
+// Render ingredients
+const ingList = document.getElementById('ing-list');
+R.ingredients.forEach((ing, i) => {
+  const div = document.createElement('div');
+  div.className = 'ing-item' + (i === 0 ? ' active' : '');
+  div.id = 'ing-' + i;
+  div.onclick = () => { if (!allDone) { activeIng = i; updateActiveIngredient(); }};
+  div.innerHTML = `
+    <div class="ing-num">${i+1}</div>
+    <div class="ing-info">
+      <div class="ing-name">${ing.name}</div>
+      <div class="ing-desc">${ing.desc}</div>
+    </div>
+    <div class="ing-target">
+      <div class="ing-target-g">${ing.grams}</div>
+      <div class="ing-target-label">grams</div>
+    </div>
+    <div class="ing-progress"><div class="ing-progress-fill" id="prog-${i}"></div></div>
+  `;
+  ingList.appendChild(div);
+});
+
+// Render steps
+const stepsList = document.getElementById('steps-list');
+R.steps.forEach((s, i) => {
+  const div = document.createElement('div');
+  div.className = 'step-item';
+  div.innerHTML = `
+    <div class="step-num-wrap">
+      <div class="step-num">${String(i+1).padStart(2,'0')}</div>
+      ${i < R.steps.length - 1 ? '<div class="step-line"></div>' : ''}
+    </div>
+    <div class="step-content">
+      <h4>${s.title}</h4>
+      <p>${s.text}</p>
+      ${s.tip ? `<div class="step-tip">💡 ${s.tip}</div>` : ''}
+    </div>
+  `;
+  stepsList.appendChild(div);
+});
+
+function updateActiveIngredient() {
+  if (allDone) return;
+  const ing = R.ingredients[activeIng];
+  // Update cards highlight
+  R.ingredients.forEach((_,i) => {
+    const el = document.getElementById('ing-'+i);
+    if (!el) return;
+    el.classList.remove('active');
+    if (!el.classList.contains('done')) {
+      // keep as is
+    }
+  });
+  const activeEl = document.getElementById('ing-'+activeIng);
+  if (activeEl && !activeEl.classList.contains('done')) activeEl.classList.add('active');
+
+  // Update right panel
+  document.getElementById('iac-name').textContent = ing.name;
+  document.getElementById('iac-sub').textContent = ing.desc;
+  document.getElementById('iac-needed').textContent = ing.grams;
+  document.getElementById('iac-tip').textContent = '💡 ' + ing.tip;
+  document.getElementById('target-val').textContent = ing.grams + ' g';
+  document.getElementById('gauge-max-label').textContent = ing.grams + 'g';
+  updateScale(currentWeight);
+}
+
+function updateScale(w) {
+  currentWeight = w;
+  const ing = allDone ? null : R.ingredients[activeIng];
+  const target = ing ? ing.grams : 1000;
+
+  // Display
+  const numEl = document.getElementById('scale-num');
+  numEl.innerHTML = w.toFixed(1) + '<span class="scale-weight-unit">g</span>';
+
+  // Color logic
+  const pct = w / target;
+  numEl.className = 'scale-weight-num';
+  const gaugeFill = document.getElementById('gauge-fill');
+  gaugeFill.className = 'gauge-fill';
+
+  if (pct >= 1.05) {
+    numEl.classList.add('over');
+    gaugeFill.classList.add('over-fill');
+  } else if (pct >= 0.9) {
+    numEl.classList.add('ok');
+    gaugeFill.classList.add('ok-fill');
+  } else if (pct >= 0.6) {
+    numEl.classList.add('warn');
+    gaugeFill.classList.add('warn-fill');
+  }
+
+  // Gauge
+  gaugeFill.style.width = Math.min(105, pct * 100) + '%';
+
+  // Diff
+  const diffEl = document.getElementById('diff-val');
+  const remaining = target - w;
+  document.getElementById('iac-current').textContent = w.toFixed(1);
+  document.getElementById('iac-remain').textContent = Math.max(0, remaining).toFixed(1);
+
+  if (Math.abs(remaining) < 2) {
+    diffEl.textContent = '✓ On target';
+    diffEl.className = 'scale-diff ok';
+  } else if (remaining < 0) {
+    diffEl.textContent = '+' + Math.abs(remaining).toFixed(1) + 'g over';
+    diffEl.className = 'scale-diff over';
+  } else {
+    diffEl.textContent = remaining.toFixed(1) + 'g to go';
+    diffEl.className = 'scale-diff';
+  }
+
+  // Progress bar in ingredient card
+  if (!allDone) {
+    const progFill = document.getElementById('prog-' + activeIng);
+    if (progFill) progFill.style.width = Math.min(100, pct * 100) + '%';
+  }
+
+  // Auto-tick if within ±3g of target
+  if (!allDone && ing && w >= target - 3 && w <= target + 15 && pct >= 0.97) {
+    triggerTick();
+  }
+}
+
+let tickTimer = null;
+function triggerTick() {
+  if (tickTimer) return; // debounce
+  const overlay = document.getElementById('tick-overlay');
+  overlay.classList.add('show');
+  tickTimer = setTimeout(() => {
+    overlay.classList.remove('show');
+    tickTimer = null;
+  }, 1800);
+}
+
+function advanceIngredient() {
+  // Mark current as done
+  const ingEl = document.getElementById('ing-' + activeIng);
+  if (ingEl) {
+    ingEl.classList.remove('active');
+    ingEl.classList.add('done');
+    ingEl.querySelector('.ing-num').textContent = '✓';
+    const prog = ingEl.querySelector('.ing-progress-fill');
+    if (prog) { prog.style.width = '100%'; prog.style.background = 'var(--ok)'; }
+  }
+
+  if (activeIng < R.ingredients.length - 1) {
+    activeIng++;
+    updateActiveIngredient();
+  } else {
+    // All done!
+    allDone = true;
+    document.getElementById('active-ing-card').style.display = 'none';
+    document.getElementById('complete-card').classList.add('show');
+    document.getElementById('next-btn').disabled = true;
+    document.getElementById('scale-num').className = 'scale-weight-num ok';
+    document.getElementById('target-val').textContent = 'All done!';
+    document.getElementById('diff-val').textContent = '✓ Complete';
+    document.getElementById('diff-val').className = 'scale-diff ok';
+  }
+}
+
+// ── FIREBASE ──
+firebase.initializeApp({ databaseURL: 'https://load-cell-ea878-default-rtdb.firebaseio.com/' });
+const db = firebase.database();
+
+db.ref('weight_data').orderByChild('timestamp').limitToLast(1).on('value', snap => {
+  const data = snap.val();
+  // Mark as connected
+  document.getElementById('conn-dot').style.background = 'var(--ok)';
+  document.getElementById('conn-label').textContent = 'Live';
+  document.getElementById('fb-dot').className = 'fb-dot live';
+  document.getElementById('live-dot').style.background = 'var(--ok)';
+  document.getElementById('live-label').textContent = 'Live';
+
+  if (data) {
+    const entries = Object.values(data);
+    if (entries.length > 0) {
+      const latest = entries[entries.length - 1];
+      if (typeof latest.weight_g === 'number') {
+        updateScale(latest.weight_g);
+      }
+    }
+  }
+}, err => {
+  console.error(err);
+  document.getElementById('conn-dot').style.background = 'var(--danger)';
+  document.getElementById('conn-label').textContent = 'Offline';
+  document.getElementById('fb-status').textContent = 'Connection failed';
+
+  // Simulation mode
+  let simW = 0; let simDir = 1;
+  setInterval(() => {
+    if (allDone) return;
+    const target = R.ingredients[activeIng]?.grams || 100;
+    simW += simDir * (Math.random() * 2.5 + 0.5);
+    if (simW >= target + 5) simDir = 0;
+    if (simW < 0) simW = 0;
+    updateScale(Math.max(0, simW));
+  }, 600);
+});
+
+// Init
+updateActiveIngredient();
+</script>
+</body>
+</html>
