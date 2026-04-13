@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ScaleCook — Analytics</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --cream:#faf7f2;--warm:#f0ebe1;--charcoal:#1a1a18;--bark:#2d2926;
+  --sage:#4a5c4a;--rust:#c4622d;--rust-light:#e8845a;
+  --gold:#b8973a;--muted:#8a8278;--border:#e2ddd6;
+  --ok:#22c55e;--warn:#f59e0b;--danger:#ef4444;
+  --blue:#3b82f6;--purple:#8b5cf6;
+}
+html{scroll-behavior:smooth}
+body{background:var(--cream);color:var(--charcoal);font-family:'DM Sans',sans-serif;overflow-x:hidden;min-height:100vh}
+
+/* ── NAV ─────────────────────────────── */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:16px 48px;display:flex;align-items:center;justify-content:space-between;background:rgba(250,247,242,0.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+.nav-logo{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:var(--charcoal);text-decoration:none}
+.nav-logo span{color:var(--rust)}
+.nav-links{display:flex;gap:28px;list-style:none}
+.nav-links a{font-size:12px;font-weight:500;color:var(--muted);text-decoration:none;letter-spacing:0.05em;text-transform:uppercase;transition:color 0.2s;padding-bottom:2px;border-bottom:2px solid transparent}
+.nav-links a:hover{color:var(--charcoal)}
+.nav-links a.active{color:var(--rust);border-bottom-color:var(--rust)}
+.nav-badge{background:var(--rust);color:#fff;font-size:10px;font-family:'DM Mono',monospace;padding:4px 10px;border-radius:999px;letter-spacing:0.08em}
+
+/* ── PAGE HERO ───────────────────────── */
+.page-hero{padding:100px 48px 0;background:var(--cream)}
+.page-hero-inner{display:grid;grid-template-columns:1fr auto;gap:32px;align-items:flex-end;padding-bottom:32px;border-bottom:1px solid var(--border);margin-bottom:40px}
+.hero-eyebrow{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.16em;color:var(--rust);text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:10px}
+.hero-eyebrow::before{content:'';width:28px;height:1px;background:var(--rust)}
+.page-hero h1{font-family:'Playfair Display',serif;font-size:clamp(40px,5vw,64px);font-weight:900;line-height:0.95;letter-spacing:-0.02em;color:var(--charcoal)}
+.page-hero h1 em{font-style:italic;color:var(--rust)}
+.page-hero p{font-size:15px;color:var(--muted);margin-top:14px;font-weight:300;line-height:1.7;max-width:480px}
+.hero-controls{display:flex;flex-direction:column;gap:12px;align-items:flex-end}
+.conn-pill{display:flex;align-items:center;gap:7px;background:var(--charcoal);color:#fff;font-size:11px;font-family:'DM Mono',monospace;padding:8px 16px;border-radius:999px}
+.conn-dot{width:7px;height:7px;border-radius:50%;background:var(--danger);transition:background 0.4s;flex-shrink:0}
+.conn-dot.live{background:var(--ok);box-shadow:0 0 6px rgba(34,197,94,0.6);animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.35}}
+.hero-btn-row{display:flex;gap:8px}
+.btn{font-family:'DM Mono',monospace;font-size:11px;font-weight:500;padding:9px 18px;border-radius:4px;cursor:pointer;transition:all 0.2s;letter-spacing:0.04em;display:inline-flex;align-items:center;gap:6px;border:none}
+.btn-dark{background:var(--charcoal);color:var(--cream)}
+.btn-dark:hover{background:var(--rust)}
+.btn-outline{background:transparent;color:var(--charcoal);border:1px solid var(--border)}
+.btn-outline:hover{border-color:var(--charcoal)}
+.btn-danger{background:transparent;color:var(--muted);border:1px solid var(--border)}
+.btn-danger:hover{border-color:var(--danger);color:var(--danger)}
+
+/* ── TIME RANGE ──────────────────────── */
+.wrap{padding:0 48px 80px;max-width:1400px;margin:0 auto}
+.range-row{display:flex;align-items:center;gap:6px;margin-bottom:32px;flex-wrap:wrap}
+.range-label{font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;margin-right:6px}
+.rchip{background:transparent;border:1px solid var(--border);border-radius:4px;color:var(--muted);font-size:11px;font-family:'DM Mono',monospace;padding:6px 14px;cursor:pointer;transition:all 0.2s;letter-spacing:0.05em}
+.rchip:hover{border-color:var(--charcoal);color:var(--charcoal)}
+.rchip.active{background:var(--charcoal);border-color:var(--charcoal);color:var(--cream)}
+
+/* ── SECTION LABEL ───────────────────── */
+.sec-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.18em;color:var(--rust);text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;gap:10px}
+.sec-label::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* ── KPI STRIP ───────────────────────── */
+.kpi-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-bottom:36px}
+.kpi{background:#fff;border:1px solid var(--border);border-radius:14px;padding:20px 18px;position:relative;overflow:hidden;transition:all 0.25s}
+.kpi:hover{box-shadow:0 8px 32px rgba(26,26,24,0.08);transform:translateY(-2px)}
+.kpi-accent{position:absolute;top:0;left:0;right:0;height:3px;border-radius:3px 3px 0 0}
+.kpi-lbl{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.14em;color:var(--muted);text-transform:uppercase;margin-bottom:10px}
+.kpi-val{font-family:'DM Mono',monospace;font-size:26px;font-weight:500;line-height:1;color:var(--charcoal)}
+.kpi-unit{font-size:11px;color:var(--muted);margin-left:2px;font-weight:400}
+.kpi-sub{font-size:10px;color:var(--muted);margin-top:6px;font-family:'DM Mono',monospace}
+
+/* ── CARD BASE ───────────────────────── */
+.card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:26px;transition:all 0.25s}
+.card:hover{box-shadow:0 8px 32px rgba(26,26,24,0.07)}
+.card-hd{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;gap:12px;flex-wrap:wrap}
+.card-title{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:var(--charcoal);letter-spacing:-0.01em}
+.card-sub{font-size:11px;color:var(--muted);margin-top:3px;font-family:'DM Mono',monospace}
+.card-actions{display:flex;gap:6px;flex-shrink:0}
+.ca-btn{background:var(--warm);border:1px solid var(--border);border-radius:4px;color:var(--muted);font-size:10px;font-family:'DM Mono',monospace;padding:4px 10px;cursor:pointer;transition:all 0.2s;letter-spacing:0.05em}
+.ca-btn:hover,.ca-btn.active{background:var(--charcoal);border-color:var(--charcoal);color:var(--cream)}
+
+/* ── DARK CARD (like scale card in recipe) ── */
+.card-dark{background:var(--charcoal);border-radius:16px;padding:26px;position:relative;overflow:hidden;color:var(--cream)}
+.card-dark::before{content:'';position:absolute;top:-80px;right:-80px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(196,98,45,0.18) 0%,transparent 65%);pointer-events:none}
+.card-dark .card-title{color:var(--cream)}
+.card-dark .card-sub{color:rgba(250,247,242,0.4)}
+
+/* ── GRID LAYOUTS ───────────────────── */
+.grid-6-4{display:grid;grid-template-columns:6fr 4fr;gap:16px;margin-bottom:16px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px}
+.grid-6-4-log{display:grid;grid-template-columns:1fr 340px;gap:16px;margin-bottom:16px}
+
+/* ── CHART WRAP ──────────────────────── */
+.chart-wrap{position:relative;width:100%}
+
+/* ── LIVE WEIGHT (dark panel style) ──── */
+.live-weight-label{font-size:10px;font-family:'DM Mono',monospace;letter-spacing:0.14em;color:rgba(250,247,242,0.4);text-transform:uppercase;margin-bottom:8px}
+.live-weight-num{font-family:'DM Mono',monospace;font-size:72px;font-weight:500;line-height:1;letter-spacing:-0.03em;color:var(--cream);transition:color 0.3s;text-align:center}
+.live-weight-num.ok{color:var(--ok)}
+.live-weight-num.warn{color:var(--warn)}
+.live-weight-num.over{color:var(--danger)}
+.live-weight-unit{font-size:20px;color:rgba(250,247,242,0.4);margin-left:4px;font-family:'DM Mono',monospace}
+
+/* gauge bar in dark card */
+.bar-track{height:6px;background:rgba(250,247,242,0.08);border-radius:999px;overflow:hidden;margin:16px 0 6px}
+.bar-fill{height:100%;border-radius:999px;background:var(--cream);transition:width 0.5s ease,background 0.3s}
+.bar-fill.ok{background:var(--ok)}
+.bar-fill.warn{background:var(--warn)}
+.bar-fill.over{background:var(--danger)}
+.bar-labels{display:flex;justify-content:space-between;font-size:10px;font-family:'DM Mono',monospace;color:rgba(250,247,242,0.3)}
+
+/* stats row in dark card */
+.dark-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:20px}
+.ds-item{background:rgba(250,247,242,0.05);border:1px solid rgba(250,247,242,0.08);border-radius:10px;padding:12px 14px}
+.ds-lbl{font-size:9px;font-family:'DM Mono',monospace;letter-spacing:0.1em;color:rgba(250,247,242,0.35);text-transform:uppercase;margin-bottom:5px}
+.ds-val{font-family:'DM Mono',monospace;font-size:18px;font-weight:500;color:var(--cream)}
+.ds-unit{font-size:10px;color:rgba(250,247,242,0.4);margin-left:2px}
+
+/* conn dot in dark card */
+.dk-conn{display:flex;align-items:center;gap:5px;font-size:10px;font-family:'DM Mono',monospace;color:rgba(250,247,242,0.4)}
+.dk-dot{width:5px;height:5px;border-radius:50%;background:var(--danger);animation:blink 2s infinite}
+.dk-dot.live{background:var(--ok)}
+
+/* ── DISTRIBUTION BARS ───────────────── */
+.dist-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.dist-lbl{font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);width:80px;flex-shrink:0;text-align:right;letter-spacing:0.02em}
+.dist-track{flex:1;height:22px;background:var(--warm);border-radius:4px;overflow:hidden}
+.dist-fill{height:100%;border-radius:4px;transition:width 0.6s cubic-bezier(0.16,1,0.3,1)}
+.dist-cnt{font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);width:32px;text-align:right;flex-shrink:0}
+.dist-pct{font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);width:34px;text-align:right;flex-shrink:0}
+
+/* ── HEATMAP ─────────────────────────── */
+.hm-grid{display:grid;grid-template-columns:repeat(24,1fr);gap:4px;margin-bottom:6px}
+.hm-cell{height:28px;border-radius:4px;background:var(--warm);cursor:pointer;position:relative;transition:background 0.3s}
+.hm-cell:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100%+6px);left:50%;transform:translateX(-50%);background:var(--charcoal);color:var(--cream);border-radius:6px;padding:4px 9px;font-size:9px;font-family:'DM Mono',monospace;white-space:nowrap;pointer-events:none;z-index:20}
+.hm-labels{display:grid;grid-template-columns:repeat(24,1fr);gap:4px}
+.hm-lbl{font-size:8px;font-family:'DM Mono',monospace;color:var(--muted);text-align:center}
+.hm-legend{display:flex;align-items:center;gap:6px;margin-top:10px}
+.hm-legend-label{font-size:9px;font-family:'DM Mono',monospace;color:var(--muted)}
+.hm-swatch{width:10px;height:10px;border-radius:2px}
+
+/* ── LOG TABLE ───────────────────────── */
+.log-wrap{overflow-x:auto;max-height:320px;overflow-y:auto}
+.log-wrap::-webkit-scrollbar{width:3px;height:3px}
+.log-wrap::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead tr{background:var(--warm);position:sticky;top:0;z-index:2}
+th{padding:10px 14px;text-align:left;font-size:9px;font-family:'DM Mono',monospace;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);font-weight:400;border-bottom:1px solid var(--border)}
+td{padding:10px 14px;border-bottom:1px solid var(--border);font-family:'DM Mono',monospace;color:var(--charcoal)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--warm)}
+.td-w{color:var(--rust);font-weight:500}
+.td-m{color:var(--muted);font-size:11px}
+.badge{display:inline-flex;padding:2px 8px;border-radius:4px;font-size:9px;letter-spacing:0.06em;font-family:'DM Mono',monospace;border:1px solid}
+.bok{background:rgba(34,197,94,0.06);color:var(--ok);border-color:rgba(34,197,94,0.2)}
+.bwarn{background:rgba(245,158,11,0.06);color:var(--warn);border-color:rgba(245,158,11,0.2)}
+.bover{background:rgba(239,68,68,0.06);color:var(--danger);border-color:rgba(239,68,68,0.2)}
+
+/* ── STAT SUMMARY ROWS ───────────────── */
+.stat-row{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border)}
+.stat-row:last-child{border-bottom:none}
+.stat-row-lbl{font-size:12px;color:var(--muted);font-weight:300}
+.stat-row-val{font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:var(--charcoal)}
+
+/* ── EMPTY STATE ─────────────────────── */
+.empty{text-align:center;padding:40px 20px;color:var(--muted)}
+.empty-ic{display:block;font-size:28px;margin-bottom:10px;opacity:0.5}
+.empty-txt{font-size:13px;font-weight:300}
+
+/* ── FOOTER ──────────────────────────── */
+footer{border-top:1px solid var(--border);padding:32px 48px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-top:20px}
+.footer-logo{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:var(--charcoal)}
+.footer-logo span{color:var(--rust)}
+.footer-copy{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace}
+
+/* ── REVEAL ──────────────────────────── */
+.reveal{opacity:0;transform:translateY(20px);transition:opacity 0.6s ease,transform 0.6s ease}
+.reveal.visible{opacity:1;transform:translateY(0)}
+.rd1{transition-delay:0.05s}.rd2{transition-delay:0.1s}.rd3{transition-delay:0.15s}
+
+@media(max-width:960px){
+  .kpi-strip{grid-template-columns:repeat(3,1fr)}
+  .grid-6-4,.grid-2,.grid-3,.grid-6-4-log{grid-template-columns:1fr}
+  nav,footer,.page-hero,.wrap{padding-left:20px;padding-right:20px}
+}
+@media(max-width:500px){.kpi-strip{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="index.html" class="nav-logo">Scale<span>Cook</span></a>
+  <ul class="nav-links">
+    <li><a href="index.html#recipes">Recipes</a></li>
+    <li><a href="index.html#project">Project</a></li>
+    <li><a href="index.html#report">Report</a></li>
+    <li><a href="analytics.html">Analytics</a></li>
+    <li><a href="index.html#team">Team</a></li>
+  </ul>
+  <span class="nav-badge">ENR206</span>
+</nav>
+
+<!-- PAGE HERO -->
+<div class="page-hero">
+  <div class="page-hero-inner">
+    <div>
+      <div class="hero-eyebrow">SmartScaleIoT · Firebase Analytics</div>
+      <h1>Weight <em>Analytics</em></h1>
+      <p>Real-time statistical analysis of every reading from your 1 kg load cell — distribution, trends, heatmaps, and session metrics pulled live from Firebase RTDB.</p>
+    </div>
+    <div class="hero-controls">
+      <div class="conn-pill">
+        <span class="conn-dot" id="conn-dot"></span>
+        <span id="conn-lbl">Connecting…</span>
+      </div>
+      <div class="hero-btn-row">
+        <button class="btn btn-dark" onclick="exportCSV()">↓ Export CSV</button>
+        <button class="btn btn-outline" onclick="window.location='ENR206_LoadCell_Dashboard.html'">Dashboard →</button>
+        <button class="btn btn-danger" onclick="clearLocal()">✕ Clear</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- TIME RANGE -->
+  <div class="range-row reveal">
+    <span class="range-label">Range</span>
+    <button class="rchip active" onclick="setRange('all',this)">All time</button>
+    <button class="rchip" onclick="setRange('today',this)">Today</button>
+    <button class="rchip" onclick="setRange('1h',this)">Last 1 hr</button>
+    <button class="rchip" onclick="setRange('30m',this)">Last 30 min</button>
+    <button class="rchip" onclick="setRange('10m',this)">Last 10 min</button>
+  </div>
+
+  <!-- KPI STRIP -->
+  <div class="sec-label reveal">Key Metrics</div>
+  <div class="kpi-strip reveal">
+    <div class="kpi"><div class="kpi-accent" style="background:var(--rust)"></div><div class="kpi-lbl">Current</div><div class="kpi-val" id="k-cur">—<span class="kpi-unit">g</span></div><div class="kpi-sub" id="k-cur-sub">Waiting…</div></div>
+    <div class="kpi"><div class="kpi-accent" style="background:var(--blue)"></div><div class="kpi-lbl">Average</div><div class="kpi-val" id="k-avg">—<span class="kpi-unit">g</span></div><div class="kpi-sub">Session mean</div></div>
+    <div class="kpi"><div class="kpi-accent" style="background:var(--gold)"></div><div class="kpi-lbl">Peak</div><div class="kpi-val" id="k-max">—<span class="kpi-unit">g</span></div><div class="kpi-sub">Max reading</div></div>
+    <div class="kpi"><div class="kpi-accent" style="background:var(--sage)"></div><div class="kpi-lbl">Minimum</div><div class="kpi-val" id="k-min">—<span class="kpi-unit">g</span></div><div class="kpi-sub">Min reading</div></div>
+    <div class="kpi"><div class="kpi-accent" style="background:var(--purple)"></div><div class="kpi-lbl">Std Dev</div><div class="kpi-val" id="k-std">—<span class="kpi-unit">g</span></div><div class="kpi-sub">Variability</div></div>
+    <div class="kpi"><div class="kpi-accent" style="background:var(--charcoal)"></div><div class="kpi-lbl">Readings</div><div class="kpi-val" id="k-cnt">0</div><div class="kpi-sub">Total entries</div></div>
+  </div>
+
+  <!-- ROW 1: Line chart + Live weight dark card -->
+  <div class="sec-label reveal">Live Feed</div>
+  <div class="grid-6-4 reveal">
+    <div class="card">
+      <div class="card-hd">
+        <div><div class="card-title">Weight over Time</div><div class="card-sub">Live readings · <span id="cn-lbl">50</span> data points</div></div>
+        <div class="card-actions">
+          <button class="ca-btn active" onclick="setN(20,this)">20</button>
+          <button class="ca-btn" onclick="setN(50,this)">50</button>
+          <button class="ca-btn" onclick="setN(100,this)">100</button>
+          <button class="ca-btn" onclick="setN(9999,this)">All</button>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:210px">
+        <canvas id="cLine" role="img" aria-label="Weight over time line chart"></canvas>
+      </div>
+    </div>
+
+    <!-- DARK LIVE WEIGHT CARD — same style as scale-card in recipe.html -->
+    <div class="card-dark">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <span style="font-size:10px;font-family:'DM Mono',monospace;letter-spacing:0.12em;color:rgba(250,247,242,0.4);text-transform:uppercase">Live Scale</span>
+        <div class="dk-conn"><span class="dk-dot" id="dk-dot"></span><span id="dk-lbl">—</span></div>
+      </div>
+      <div style="text-align:center;margin-bottom:4px">
+        <div class="live-weight-label">Current Reading</div>
+        <div class="live-weight-num" id="lw-num">—<span class="live-weight-unit">g</span></div>
+      </div>
+      <div class="bar-track"><div class="bar-fill" id="bar-fill" style="width:0%"></div></div>
+      <div class="bar-labels"><span>0g</span><span id="bar-pct">—%</span><span>1000g</span></div>
+      <div class="dark-stats">
+        <div class="ds-item"><div class="ds-lbl">Min</div><div class="ds-val" id="ds-min">—<span class="ds-unit">g</span></div></div>
+        <div class="ds-item"><div class="ds-lbl">Avg</div><div class="ds-val" id="ds-avg">—<span class="ds-unit">g</span></div></div>
+        <div class="ds-item"><div class="ds-lbl">Max</div><div class="ds-val" id="ds-max">—<span class="ds-unit">g</span></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW 2: Moving Average + Distribution -->
+  <div class="sec-label reveal">Signal Analysis</div>
+  <div class="grid-2 reveal">
+    <div class="card">
+      <div class="card-hd">
+        <div><div class="card-title">Moving Average</div><div class="card-sub">Raw signal vs MA(5) smoothed</div></div>
+      </div>
+      <div class="chart-wrap" style="height:188px">
+        <canvas id="cMA" role="img" aria-label="Moving average chart"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><div><div class="card-title">Weight Distribution</div><div class="card-sub">Reading frequency by 200g range</div></div></div>
+      <div id="dist-body" style="padding-top:4px"><div class="empty"><span class="empty-ic">📊</span><span class="empty-txt">Awaiting data…</span></div></div>
+    </div>
+  </div>
+
+  <!-- ROW 3: Histogram + Rate of Change -->
+  <div class="grid-2 reveal">
+    <div class="card">
+      <div class="card-hd"><div><div class="card-title">Histogram</div><div class="card-sub">100g buckets · reading count per range</div></div></div>
+      <div class="chart-wrap" style="height:188px">
+        <canvas id="cHist" role="img" aria-label="Histogram of weight readings"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><div><div class="card-title">Rate of Change</div><div class="card-sub">Δg between consecutive readings</div></div></div>
+      <div class="chart-wrap" style="height:188px">
+        <canvas id="cDelta" role="img" aria-label="Rate of change bar chart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- HEATMAP -->
+  <div class="sec-label reveal">Activity</div>
+  <div class="card reveal" style="margin-bottom:16px">
+    <div class="card-hd">
+      <div><div class="card-title">Hourly Activity Heatmap</div><div class="card-sub">Readings per hour of day — all sessions · darker = higher activity</div></div>
+      <div class="hm-legend">
+        <span class="hm-legend-label">less</span>
+        <div class="hm-swatch" style="background:var(--warm)"></div>
+        <div class="hm-swatch" style="background:rgba(196,98,45,0.2)"></div>
+        <div class="hm-swatch" style="background:rgba(196,98,45,0.45)"></div>
+        <div class="hm-swatch" style="background:rgba(196,98,45,0.72)"></div>
+        <div class="hm-swatch" style="background:var(--rust)"></div>
+        <span class="hm-legend-label">more</span>
+      </div>
+    </div>
+    <div class="hm-grid" id="hm-grid"></div>
+    <div class="hm-labels" id="hm-labels"></div>
+  </div>
+
+  <!-- ROW 4: Log Table + Stats Summary -->
+  <div class="sec-label reveal">Data</div>
+  <div class="grid-6-4-log reveal">
+    <div class="card">
+      <div class="card-hd">
+        <div><div class="card-title">Reading Log</div><div class="card-sub" id="log-sub">0 entries</div></div>
+        <div class="card-actions"><button class="ca-btn" onclick="exportCSV()">↓ CSV</button></div>
+      </div>
+      <div class="log-wrap">
+        <div class="empty" id="log-empty"><span class="empty-ic">📋</span><span class="empty-txt">No readings yet</span></div>
+        <table id="log-tbl" style="display:none">
+          <thead><tr><th>#</th><th>Weight</th><th>Time</th><th>Date</th><th>Status</th></tr></thead>
+          <tbody id="log-body"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><div><div class="card-title">Statistical Summary</div><div class="card-sub">Percentiles & session metrics</div></div></div>
+      <div id="stats-body"><div class="empty"><span class="empty-ic">📈</span><span class="empty-txt">Awaiting data…</span></div></div>
+    </div>
+  </div>
+
+</div><!-- /wrap -->
+
+<footer>
+  <div class="footer-logo">Scale<span>Cook</span></div>
+  <div class="footer-copy">ENR206 · Sensors &amp; Instruments · Ahmedabad University · 2024 · SmartScaleIoT</div>
+</footer>
+
+<!-- Firebase + Chart.js -->
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+// ── FIREBASE ──
+firebase.initializeApp({ databaseURL:'https://load-cell-ea878-default-rtdb.firebaseio.com/' });
+const db = firebase.database();
+
+// ── CONSTANTS & STATE ──
+const CAP = 1000;
+let all = [], filt = [], chartN = 50, range = 'all';
+
+// ── CHART PALETTE ──
+Chart.defaults.color = '#8a8278';
+Chart.defaults.font.family = 'DM Mono, monospace';
+Chart.defaults.font.size = 10;
+const GC = 'rgba(26,26,24,0.05)';
+const BC = 'rgba(26,26,24,0.08)';
+
+// Rust tints for charts
+const RUST = '#c4622d', RUST_BG = 'rgba(196,98,45,0.08)';
+const BLUE = '#3b82f6', BLUE_BG = 'rgba(59,130,246,0.06)';
+const PURPLE = '#8b5cf6', PURPLE_BG = 'rgba(139,92,246,0.5)';
+const GOLD = '#b8973a', GOLD_BG = 'rgba(184,151,58,0.5)';
+const SAGE = '#4a5c4a';
+
+// ── INIT CHARTS ──
+const cLine = new Chart(document.getElementById('cLine'), {
+  type:'line',
+  data:{labels:[],datasets:[{
+    label:'Weight (g)', data:[],
+    borderColor:RUST, backgroundColor:RUST_BG,
+    borderWidth:2, pointRadius:2.5, pointBackgroundColor:RUST,
+    tension:0.35, fill:true
+  }]},
+  options:{responsive:true,maintainAspectRatio:false,animation:{duration:200},
+    plugins:{legend:{display:false}},
+    scales:{
+      x:{grid:{color:GC},border:{color:BC},ticks:{maxTicksLimit:8,maxRotation:0}},
+      y:{min:0,max:CAP+60,grid:{color:GC},border:{color:BC},ticks:{callback:v=>v+'g'}}
+    }}
+});
+
+const cMA = new Chart(document.getElementById('cMA'), {
+  type:'line',
+  data:{labels:[],datasets:[
+    {label:'Raw', data:[],borderColor:'rgba(196,98,45,0.3)',borderWidth:1,pointRadius:0,tension:0.2,fill:false},
+    {label:'MA(5)', data:[],borderColor:RUST,borderWidth:2.2,pointRadius:0,tension:0.4,fill:false}
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,animation:{duration:200},
+    plugins:{legend:{display:true,labels:{boxWidth:10,padding:14,color:'#8a8278',font:{size:10}}}},
+    scales:{
+      x:{grid:{color:GC},border:{color:BC},ticks:{maxTicksLimit:6,maxRotation:0}},
+      y:{grid:{color:GC},border:{color:BC},ticks:{callback:v=>v+'g'}}
+    }}
+});
+
+const cHist = new Chart(document.getElementById('cHist'), {
+  type:'bar',
+  data:{labels:[],datasets:[{
+    label:'Count', data:[],
+    backgroundColor:PURPLE_BG, borderColor:PURPLE,
+    borderWidth:1.5, borderRadius:4
+  }]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false}},
+    scales:{
+      x:{grid:{color:GC},border:{color:BC},ticks:{maxRotation:40,font:{size:9}}},
+      y:{grid:{color:GC},border:{color:BC},ticks:{stepSize:1}}
+    }}
+});
+
+const cDelta = new Chart(document.getElementById('cDelta'), {
+  type:'bar',
+  data:{labels:[],datasets:[{
+    label:'Δg', data:[],
+    backgroundColor: ctx => (ctx.raw||0) >= 0 ? 'rgba(34,197,94,0.55)' : 'rgba(239,68,68,0.55)',
+    borderColor: ctx => (ctx.raw||0) >= 0 ? '#22c55e' : '#ef4444',
+    borderWidth:1.2, borderRadius:3
+  }]},
+  options:{responsive:true,maintainAspectRatio:false,animation:{duration:140},
+    plugins:{legend:{display:false}},
+    scales:{
+      x:{grid:{color:GC},border:{color:BC},ticks:{maxTicksLimit:8,maxRotation:0}},
+      y:{grid:{color:GC},border:{color:BC},ticks:{callback:v=>(v>0?'+':'')+v.toFixed(1)+'g'}}
+    }}
+});
+
+// ── HEATMAP SKELETON ──
+(function(){
+  const g=document.getElementById('hm-grid'), l=document.getElementById('hm-labels');
+  for(let h=0;h<24;h++){
+    const c=document.createElement('div'); c.className='hm-cell'; c.style.background='var(--warm)'; g.appendChild(c);
+    const lb=document.createElement('div'); lb.className='hm-lbl'; lb.textContent=h%3===0?String(h).padStart(2,'0'):''; l.appendChild(lb);
+  }
+})();
+
+// ── FIREBASE LISTENER ──
+db.ref('weight_data').on('value', snap => {
+  const data = snap.val();
+  setConn(true);
+  if (!data) return;
+  all = Object.values(data).filter(e=>typeof e.weight_g==='number').sort((a,b)=>a.timestamp-b.timestamp);
+  applyRange();
+}, () => setConn(false));
+
+// ── RANGE FILTER ──
+function setRange(r, btn) {
+  range = r;
+  document.querySelectorAll('.rchip').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  applyRange();
+}
+function applyRange() {
+  const now = Date.now()/1000;
+  const cut = {all:Infinity, today:86400, '1h':3600, '30m':1800, '10m':600};
+  filt = all.filter(e=>!e.timestamp||(now-e.timestamp)<=cut[range]);
+  rebuildAll();
+}
+
+// ── MAIN UPDATE ──
+function rebuildAll() {
+  if (!filt.length) return;
+  const ws = filt.map(e=>e.weight_g);
+  const n=ws.length, avg=ws.reduce((a,b)=>a+b,0)/n;
+  const mx=Math.max(...ws), mn=Math.min(...ws), sd=stdDev(ws);
+  const lat=filt[n-1], lw=lat.weight_g;
+
+  // KPIs
+  setKpi('k-cur', lw.toFixed(1), 'g');
+  const ts = lat.timestamp ? 'At '+fmtT(lat.timestamp) : '—';
+  document.getElementById('k-cur-sub').textContent = ts;
+  setKpi('k-avg', avg.toFixed(1), 'g');
+  setKpi('k-max', mx.toFixed(1), 'g');
+  setKpi('k-min', mn.toFixed(1), 'g');
+  setKpi('k-std', sd.toFixed(2), 'g');
+  document.getElementById('k-cnt').textContent = n;
+
+  // Live weight dark card
+  const pct = Math.min(100,(lw/CAP)*100);
+  const numEl = document.getElementById('lw-num');
+  numEl.className = 'live-weight-num' + (lw>CAP?' over':lw>850?' warn':' ok');
+  numEl.innerHTML = lw.toFixed(1)+'<span class="live-weight-unit">g</span>';
+  const bf = document.getElementById('bar-fill');
+  bf.style.width = pct+'%';
+  bf.className = 'bar-fill' + (lw>CAP?' over':lw>850?' warn':' ok');
+  document.getElementById('bar-pct').textContent = pct.toFixed(1)+'%';
+  document.getElementById('ds-min').innerHTML = mn.toFixed(1)+'<span class="ds-unit">g</span>';
+  document.getElementById('ds-avg').innerHTML = avg.toFixed(1)+'<span class="ds-unit">g</span>';
+  document.getElementById('ds-max').innerHTML = mx.toFixed(1)+'<span class="ds-unit">g</span>';
+
+  // Charts
+  updLine(); updMA(); updHist(ws); updDelta(); updDist(ws); updHeatmap(); updTable(); updStats(ws,avg,sd,mn,mx);
+}
+
+function setKpi(id, val, unit) {
+  const el=document.getElementById(id);
+  el.innerHTML = val+'<span class="kpi-unit">'+unit+'</span>';
+}
+
+// ── CHART UPDATES ──
+function updLine() {
+  const sl=filt.slice(-chartN);
+  cLine.data.labels=sl.map(e=>fmtT(e.timestamp));
+  cLine.data.datasets[0].data=sl.map(e=>+e.weight_g.toFixed(2));
+  cLine.update('none');
+  document.getElementById('cn-lbl').textContent=sl.length;
+}
+function updMA() {
+  const sl=filt.slice(-chartN), raw=sl.map(e=>+e.weight_g.toFixed(2));
+  const ma=raw.map((_,i)=>{ if(i<4) return null; const seg=raw.slice(i-4,i+1); return +(seg.reduce((a,b)=>a+b,0)/5).toFixed(2); });
+  cMA.data.labels=sl.map(e=>fmtT(e.timestamp));
+  cMA.data.datasets[0].data=raw; cMA.data.datasets[1].data=ma; cMA.update('none');
+}
+function updHist(ws) {
+  const bkts=[0,100,200,300,400,500,600,700,800,900,1000];
+  const lbls=bkts.slice(0,-1).map((b,i)=>b+'–'+bkts[i+1]);
+  const cts=new Array(10).fill(0);
+  ws.forEach(w=>{ const i=Math.min(Math.floor(w/100),9); if(i>=0) cts[i]++; });
+  cHist.data.labels=lbls; cHist.data.datasets[0].data=cts; cHist.update('none');
+}
+function updDelta() {
+  const sl=filt.slice(-50);
+  cDelta.data.labels=sl.slice(1).map(e=>fmtT(e.timestamp));
+  cDelta.data.datasets[0].data=sl.slice(1).map((e,i)=>+(e.weight_g-sl[i].weight_g).toFixed(2));
+  cDelta.update('none');
+}
+function updDist(ws) {
+  const rngs=[
+    {l:'0–200g',mn:0,mx:200,c:'#3b82f6'},
+    {l:'200–400g',mn:200,mx:400,c:'#8b5cf6'},
+    {l:'400–600g',mn:400,mx:600,c:'#c4622d'},
+    {l:'600–800g',mn:600,mx:800,c:'#b8973a'},
+    {l:'800–1000g',mn:800,mx:1000,c:'#f59e0b'},
+    {l:'> 1000g',mn:1000,mx:Infinity,c:'#ef4444'},
+  ];
+  const n=ws.length, cts=rngs.map(r=>ws.filter(w=>w>=r.mn&&w<r.mx).length);
+  const maxC=Math.max(...cts,1);
+  document.getElementById('dist-body').innerHTML=rngs.map((r,i)=>`
+    <div class="dist-row">
+      <div class="dist-lbl">${r.l}</div>
+      <div class="dist-track"><div class="dist-fill" style="width:${(cts[i]/maxC*100).toFixed(0)}%;background:${r.c};opacity:0.7"></div></div>
+      <div class="dist-cnt">${cts[i]}</div>
+      <div class="dist-pct">${n?(cts[i]/n*100).toFixed(0):0}%</div>
+    </div>`).join('');
+}
+function updHeatmap() {
+  const hr=new Array(24).fill(0);
+  all.forEach(e=>{ if(e.timestamp) hr[new Date(e.timestamp*1000).getHours()]++; });
+  const mx=Math.max(...hr,1);
+  const cells=document.getElementById('hm-grid').children;
+  hr.forEach((c,h)=>{
+    const a=c===0?0:0.12+c/mx*0.88;
+    cells[h].style.background=c===0?'var(--warm)':`rgba(196,98,45,${a.toFixed(2)})`;
+    cells[h].setAttribute('data-tip',String(h).padStart(2,'0')+':00 — '+c+' readings');
+  });
+}
+function updTable() {
+  const tbody=document.getElementById('log-body');
+  tbody.innerHTML='';
+  [...filt].reverse().forEach((e,i)=>{
+    const w=e.weight_g;
+    const b=w>CAP?'<span class="badge bover">OVER</span>':w>850?'<span class="badge bwarn">WARN</span>':'<span class="badge bok">OK</span>';
+    const ts=e.timestamp?new Date(e.timestamp*1000):null;
+    tbody.innerHTML+=`<tr>
+      <td class="td-m">${filt.length-i}</td>
+      <td class="td-w">${w.toFixed(1)}g</td>
+      <td class="td-m">${ts?ts.toLocaleTimeString('en-IN'):'—'}</td>
+      <td class="td-m">${ts?ts.toLocaleDateString('en-IN'):(e.datetime||'—')}</td>
+      <td>${b}</td>
+    </tr>`;
+  });
+  const emp=document.getElementById('log-empty'), tbl=document.getElementById('log-tbl');
+  filt.length ? (emp.style.display='none', tbl.style.display='table') : (emp.style.display='block', tbl.style.display='none');
+  document.getElementById('log-sub').textContent=filt.length+' entries';
+}
+function updStats(ws,avg,sd,mn,mx) {
+  const n=ws.length, s=[...ws].sort((a,b)=>a-b);
+  const p=q=>s[Math.floor(n*q)]||0;
+  const oc=ws.filter(w=>w>CAP).length;
+  const stb=ws.filter((w,i,a)=>i===0||Math.abs(w-a[i-1])<2).length;
+  const cv=avg>0?sd/avg*100:0;
+  const dur=sessDur();
+  const rows=[
+    ['Median (P50)', p(0.5).toFixed(1)+'g'],
+    ['P25 / P75', p(0.25).toFixed(1)+'g  /  '+p(0.75).toFixed(1)+'g'],
+    ['P95', p(0.95).toFixed(1)+'g'],
+    ['Range (max−min)', (mx-mn).toFixed(1)+'g'],
+    ['Coeff. of Variation', cv.toFixed(1)+'%'],
+    ['Over-capacity', oc+' / '+n+' readings'],
+    ['Stable ±2g reads', stb+' / '+n],
+    ['Session duration', dur],
+  ];
+  document.getElementById('stats-body').innerHTML=rows.map(([l,v])=>`
+    <div class="stat-row">
+      <span class="stat-row-lbl">${l}</span>
+      <span class="stat-row-val">${v}</span>
+    </div>`).join('');
+}
+
+// ── HELPERS ──
+function stdDev(a){ const m=a.reduce((x,y)=>x+y,0)/a.length; return Math.sqrt(a.map(x=>(x-m)**2).reduce((x,y)=>x+y,0)/a.length); }
+function fmtT(ts){ return ts?new Date(ts*1000).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'}):''; }
+function sessDur(){
+  if(filt.length<2||!filt[0].timestamp) return '—';
+  const d=filt[filt.length-1].timestamp-filt[0].timestamp;
+  return (d>=60?Math.floor(d/60)+'m ':'')+(Math.floor(d%60))+'s';
+}
+function setConn(ok){
+  document.getElementById('conn-dot').className='conn-dot'+(ok?' live':'');
+  document.getElementById('conn-lbl').textContent=ok?'Firebase Live':'Offline';
+  document.getElementById('dk-dot').className='dk-dot'+(ok?' live':'');
+  document.getElementById('dk-lbl').textContent=ok?'Live':'Offline';
+}
+function setN(n,btn){
+  chartN=n;
+  document.querySelectorAll('.ca-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if(filt.length){ updLine(); updMA(); updDelta(); }
+}
+function exportCSV(){
+  if(!filt.length){ alert('No data to export.'); return; }
+  const rows=[['#','Weight (g)','Timestamp','DateTime']];
+  filt.forEach((e,i)=>rows.push([i+1,e.weight_g.toFixed(2),e.timestamp||'',e.datetime||'']));
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([rows.map(r=>r.join(',')).join('\n')],{type:'text/csv'}));
+  a.download='ScaleCook_Analytics_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+}
+function clearLocal(){
+  if(!confirm('Clear local view? Firebase data is not affected.')) return;
+  all=[];filt=[];
+  ['k-cur','k-avg','k-max','k-min','k-std'].forEach(id=>{ document.getElementById(id).innerHTML='—<span class="kpi-unit">g</span>'; });
+  document.getElementById('k-cnt').textContent='0';
+  document.getElementById('lw-num').innerHTML='—<span class="live-weight-unit">g</span>';
+  document.getElementById('bar-fill').style.width='0%';
+  document.getElementById('bar-pct').textContent='—%';
+  ['ds-min','ds-avg','ds-max'].forEach(id=>{ document.getElementById(id).innerHTML='—<span class="ds-unit">g</span>'; });
+  [cLine,cMA,cHist,cDelta].forEach(c=>{ c.data.labels=[];c.data.datasets.forEach(d=>d.data=[]);c.update(); });
+  document.getElementById('dist-body').innerHTML='<div class="empty"><span class="empty-ic">📊</span><span class="empty-txt">Cleared</span></div>';
+  document.getElementById('stats-body').innerHTML='<div class="empty"><span class="empty-ic">📈</span><span class="empty-txt">Cleared</span></div>';
+  document.getElementById('log-body').innerHTML='';
+  document.getElementById('log-empty').style.display='block';
+  document.getElementById('log-tbl').style.display='none';
+  updHeatmap();
+}
+
+// ── SCROLL REVEAL ──
+const obs=new IntersectionObserver(entries=>entries.forEach(e=>{ if(e.isIntersecting) e.target.classList.add('visible'); }),{threshold:0.08});
+document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
+</script>
+</body>
+</html>
